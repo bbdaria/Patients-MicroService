@@ -4,6 +4,7 @@ go 1.22.0
 
 require (
 	github.com/TekClinic/Auth-MicroService/auth_protobuf v0.0.0-20240212131444-c6cd1d175812 // indirect
+	github.com/TekClinic/Patients-MicroService/patients_protobuf v0.0.0-20240212175221-1853ee11d63d // indirect
 	github.com/fatih/color v1.16.0 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect

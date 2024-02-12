@@ -4,6 +4,8 @@ cloud.google.com/go/compute/metadata v0.2.3 h1:mg4jlk7mCAj6xXp9UJ4fjI9VUI5rubuGB
 cloud.google.com/go/compute/metadata v0.2.3/go.mod h1:VAV5nSsACxMJvgaAuX6Pk2AawlZn8kiOGuCv6gTkwuA=
 github.com/TekClinic/Auth-MicroService/auth_protobuf v0.0.0-20240212131444-c6cd1d175812 h1:ZKEmh2p4A5oFVDJrXsl0z+u40DB/OPg+jPLHzYGRYuo=
 github.com/TekClinic/Auth-MicroService/auth_protobuf v0.0.0-20240212131444-c6cd1d175812/go.mod h1:rxyFJJRIDEH+EW62jSASFQRK2XD77hupVRoPqf8YWLs=
+github.com/TekClinic/Patients-MicroService/patients_protobuf v0.0.0-20240212175221-1853ee11d63d h1:oRaYywRWxyKI8kSDsvP4FRDtx97IacJl1Dz5ZIIVmvA=
+github.com/TekClinic/Patients-MicroService/patients_protobuf v0.0.0-20240212175221-1853ee11d63d/go.mod h1:Q9N7kfmosNT86mN45z6iDFWpXyGZQicaqXNGVC3BcD8=
 github.com/census-instrumentation/opencensus-proto v0.4.1 h1:iKLQ0xPNFxR/2hzXZMrBo8f1j86j5WHzznCCQxV/b8g=
 github.com/census-instrumentation/opencensus-proto v0.4.1/go.mod h1:4T9NM4+4Vw91VeyqjLS6ao50K5bOcLKN6Q42XnYaRYw=
 github.com/cespare/xxhash/v2 v2.2.0 h1:DC2CZ1Ep5Y4k3ZQ899DldepgrayRUGE6BBZ/cd9Cj44=
