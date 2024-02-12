@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+option go_package = "github.com/TekClinic/Patients-MicroService/auth_protobuf";
+
+package patients;
+
+service PatientsService {
+  rpc GetPatient(PatientRequest) returns (Patient);
+}
+
+message PatientRequest {
+  string user_id = 1;
+}
+
+message Patient {
+  string user_id = 1;
+  string name = 2;
+}
