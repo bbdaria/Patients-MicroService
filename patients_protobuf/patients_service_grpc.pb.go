@@ -4,7 +4,7 @@
 // - protoc             v3.12.4
 // source: patients_service.proto
 
-package auth_protobuf
+package patients_protobuf
 
 import (
 	context "context"
@@ -23,7 +23,7 @@ const _ = grpc.SupportPackageIsVersion7
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type PatientsServiceClient interface {
 	GetPatient(ctx context.Context, in *PatientRequest, opts ...grpc.CallOption) (*Patient, error)
-	GetMe(ctx context.Context, in *MeRequest, opts ...grpc.CallOption) (*Patient, error)
+	GetPatients(ctx context.Context, in *RangeRequest, opts ...grpc.CallOption) (PatientsService_GetPatientsClient, error)
 }
 
 type patientsServiceClient struct {
@@ -43,13 +43,36 @@ func (c *patientsServiceClient) GetPatient(ctx context.Context, in *PatientReque
 	return out, nil
 }
 
-func (c *patientsServiceClient) GetMe(ctx context.Context, in *MeRequest, opts ...grpc.CallOption) (*Patient, error) {
-	out := new(Patient)
-	err := c.cc.Invoke(ctx, "/patients.PatientsService/GetMe", in, out, opts...)
+func (c *patientsServiceClient) GetPatients(ctx context.Context, in *RangeRequest, opts ...grpc.CallOption) (PatientsService_GetPatientsClient, error) {
+	stream, err := c.cc.NewStream(ctx, &PatientsService_ServiceDesc.Streams[0], "/patients.PatientsService/GetPatients", opts...)
 	if err != nil {
 		return nil, err
 	}
-	return out, nil
+	x := &patientsServiceGetPatientsClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type PatientsService_GetPatientsClient interface {
+	Recv() (*Patient, error)
+	grpc.ClientStream
+}
+
+type patientsServiceGetPatientsClient struct {
+	grpc.ClientStream
+}
+
+func (x *patientsServiceGetPatientsClient) Recv() (*Patient, error) {
+	m := new(Patient)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
 }
 
 // PatientsServiceServer is the server API for PatientsService service.
@@ -57,7 +80,7 @@ func (c *patientsServiceClient) GetMe(ctx context.Context, in *MeRequest, opts .
 // for forward compatibility
 type PatientsServiceServer interface {
 	GetPatient(context.Context, *PatientRequest) (*Patient, error)
-	GetMe(context.Context, *MeRequest) (*Patient, error)
+	GetPatients(*RangeRequest, PatientsService_GetPatientsServer) error
 	mustEmbedUnimplementedPatientsServiceServer()
 }
 
@@ -68,8 +91,8 @@ type UnimplementedPatientsServiceServer struct {
 func (UnimplementedPatientsServiceServer) GetPatient(context.Context, *PatientRequest) (*Patient, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetPatient not implemented")
 }
-func (UnimplementedPatientsServiceServer) GetMe(context.Context, *MeRequest) (*Patient, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetMe not implemented")
+func (UnimplementedPatientsServiceServer) GetPatients(*RangeRequest, PatientsService_GetPatientsServer) error {
+	return status.Errorf(codes.Unimplemented, "method GetPatients not implemented")
 }
 func (UnimplementedPatientsServiceServer) mustEmbedUnimplementedPatientsServiceServer() {}
 
@@ -102,22 +125,25 @@ func _PatientsService_GetPatient_Handler(srv interface{}, ctx context.Context, d
 	return interceptor(ctx, in, info, handler)
 }
 
-func _PatientsService_GetMe_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(MeRequest)
-	if err := dec(in); err != nil {
-		return nil, err
+func _PatientsService_GetPatients_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(RangeRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
 	}
-	if interceptor == nil {
-		return srv.(PatientsServiceServer).GetMe(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/patients.PatientsService/GetMe",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PatientsServiceServer).GetMe(ctx, req.(*MeRequest))
-	}
-	return interceptor(ctx, in, info, handler)
+	return srv.(PatientsServiceServer).GetPatients(m, &patientsServiceGetPatientsServer{stream})
+}
+
+type PatientsService_GetPatientsServer interface {
+	Send(*Patient) error
+	grpc.ServerStream
+}
+
+type patientsServiceGetPatientsServer struct {
+	grpc.ServerStream
+}
+
+func (x *patientsServiceGetPatientsServer) Send(m *Patient) error {
+	return x.ServerStream.SendMsg(m)
 }
 
 // PatientsService_ServiceDesc is the grpc.ServiceDesc for PatientsService service.
@@ -131,11 +157,13 @@ var PatientsService_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "GetPatient",
 			Handler:    _PatientsService_GetPatient_Handler,
 		},
+	},
+	Streams: []grpc.StreamDesc{
 		{
-			MethodName: "GetMe",
-			Handler:    _PatientsService_GetMe_Handler,
+			StreamName:    "GetPatients",
+			Handler:       _PatientsService_GetPatients_Handler,
+			ServerStreams: true,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
 	Metadata: "patients_service.proto",
 }

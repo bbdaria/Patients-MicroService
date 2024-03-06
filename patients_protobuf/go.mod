@@ -1,6 +1,6 @@
 module github.com/TekClinic/Patients-MicroService/patients_protobuf
 
-go 1.22.0
+go 1.22
 
 require (
 	google.golang.org/grpc v1.61.0

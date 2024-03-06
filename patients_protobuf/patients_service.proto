@@ -1,0 +1,60 @@
+syntax = "proto3";
+
+option go_package = "github.com/TekClinic/Patients-MicroService/patients_protobuf";
+
+package patients;
+
+service PatientsService {
+  rpc GetPatient(PatientRequest) returns (Patient);
+  rpc GetPatients(RangeRequest) returns (stream Patient);
+}
+
+message RangeRequest {
+  string token = 1;
+  int32 limit = 2;
+  int32 offset = 3;
+}
+
+message PatientRequest {
+  string token = 1;
+  int64 id = 2;
+}
+
+message Patient {
+
+  message PersonalId {
+    string id = 1;
+    string type = 2;
+  }
+
+  enum Gender {
+    UNSPECIFIED = 0;
+    MALE = 1;
+    FEMALE = 2;
+  }
+
+  message Date {
+    int32 day = 1;
+    int32 month = 2;
+    int32 year = 3;
+  }
+
+  message EmergencyContact {
+    string name = 1;
+    string closeness = 2;
+    string phone = 3;
+  }
+
+  int64 id = 1;
+  bool active = 2;
+  string name = 3;
+  PersonalId personal_id = 4;
+  Gender gender = 5;
+  string phone_number = 6;
+  repeated string languages = 7;
+  Date birth_date = 8;
+  int32 age = 9;
+  string referred_by = 10;
+  repeated EmergencyContact emergency_contacts = 11;
+  string special_note = 12;
+}
