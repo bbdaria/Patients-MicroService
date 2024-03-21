@@ -8,6 +8,8 @@ WORKDIR /app
 # Copy the source code
 COPY . .
 
+WORKDIR /app/server
+
 # Download Go modules
 RUN go mod download
 
