@@ -8,21 +8,24 @@ import (
 	"time"
 )
 
+// PersonalId defines a schema of personal ids
 type PersonalId struct {
 	ID   string
 	Type string
 }
 
+// EmergencyContact defines a schema of emergency contacts
 type EmergencyContact struct {
-	ID        int64 `bun:",pk,autoincrement"`
+	ID        int32 `bun:",pk,autoincrement"`
 	Name      string
 	Closeness string
 	Phone     string
-	PatientId int64
+	PatientId int32
 }
 
+// Patient defines a schema of patients
 type Patient struct {
-	ID                int `bun:",pk,autoincrement"`
+	ID                int32 `bun:",pk,autoincrement"`
 	Active            bool
 	Name              string
 	PersonalId        PersonalId `bun:"embed:personal_id_"`
@@ -35,6 +38,7 @@ type Patient struct {
 	SpecialNote       string
 }
 
+// toGRPC returns a GRPC version of PersonalId
 func (personalId PersonalId) toGRPC() *ppb.Patient_PersonalId {
 	return &ppb.Patient_PersonalId{
 		Id:   personalId.ID,
@@ -42,6 +46,7 @@ func (personalId PersonalId) toGRPC() *ppb.Patient_PersonalId {
 	}
 }
 
+// toGRPC returns a GRPC version of EmergencyContact
 func (contact EmergencyContact) toGRPC() *ppb.Patient_EmergencyContact {
 	return &ppb.Patient_EmergencyContact{
 		Name:      contact.Name,
@@ -50,26 +55,19 @@ func (contact EmergencyContact) toGRPC() *ppb.Patient_EmergencyContact {
 	}
 }
 
-func createGRPCDate(time time.Time) *ppb.Patient_Date {
-	return &ppb.Patient_Date{
-		Day:   int32(time.Day()),
-		Month: int32(time.Month()),
-		Year:  int32(time.Year()),
-	}
-}
-
+// toGRPC returns a GRPC version of Patient
 func (patient Patient) toGRPC() *ppb.Patient {
 	EmergencyContacts := sf.Map(patient.EmergencyContacts,
 		func(contact *EmergencyContact) *ppb.Patient_EmergencyContact { return contact.toGRPC() })
 	return &ppb.Patient{
-		Id:                int64(patient.ID),
+		Id:                patient.ID,
 		Active:            patient.Active,
 		Name:              patient.Name,
 		PersonalId:        patient.PersonalId.toGRPC(),
 		Gender:            patient.Gender,
 		PhoneNumber:       patient.PhoneNumber,
 		Languages:         patient.Languages,
-		BirthDate:         createGRPCDate(patient.BirthDate),
+		BirthDate:         patient.BirthDate.Format(time.DateOnly),
 		Age:               int32(time.Now().Year() - patient.BirthDate.Year()),
 		ReferredBy:        patient.ReferredBy,
 		EmergencyContacts: EmergencyContacts,
@@ -77,6 +75,7 @@ func (patient Patient) toGRPC() *ppb.Patient {
 	}
 }
 
+// createSchemaIfNotExists creates all required schemas for patient microservice
 func createSchemaIfNotExists(ctx context.Context, db *bun.DB) error {
 	models := []interface{}{
 		(*Patient)(nil),

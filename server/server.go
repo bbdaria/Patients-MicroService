@@ -17,14 +17,31 @@ import (
 	"net"
 )
 
+// patientsServer is an implementation of GRPC patient microservice. It provides access to database via db field
 type patientsServer struct {
 	ppb.UnimplementedPatientsServiceServer
 	ms.BaseServiceServer
 	db *bun.DB
 }
 
-const permissionDeniedMessage = "You don't have enough permission to access this resource"
+const (
+	envDBAddress     = "DB_ADDR"
+	envDBUser        = "DB_USER"
+	envDBDatabase    = "DB_DATABASE"
+	envDBPassword    = "DB_PASSWORD"
+	envBunDebugLevel = "BUN_DEBUG"
 
+	applicationName = "patients"
+
+	permissionDeniedMessage = "You don't have enough permission to access this resource"
+
+	maxPaginationLimit = 50
+)
+
+// GetPatient returns a patient that corresponds to the given id
+// Requires authentication. If authentication is not valid, codes.Unauthenticated is returned
+// Requires admin role. If roles is not sufficient, codes.PermissionDenied is returned
+// If patient with a given id doesn't exist, codes.NotFound is returned
 func (server patientsServer) GetPatient(ctx context.Context, req *ppb.PatientRequest) (*ppb.Patient, error) {
 	claims, err := server.VerifyToken(ctx, req.GetToken())
 	if err != nil {
@@ -45,55 +62,69 @@ func (server patientsServer) GetPatient(ctx context.Context, req *ppb.PatientReq
 	return patient.toGRPC(), nil
 }
 
-func (server patientsServer) GetPatients(req *ppb.RangeRequest, dispatcher ppb.PatientsService_GetPatientsServer) error {
-	claims, err := server.VerifyToken(dispatcher.Context(), req.GetToken())
+// GetPatientsIds returns a list of patients' ids with given filters and pagination
+// Requires authentication. If authentication is not valid, codes.Unauthenticated is returned
+// Requires admin role. If roles is not sufficient, codes.PermissionDenied is returned
+// Offset value is used for a pagination. Required be a non-negative value
+// Limit value is used for a pagination. Required to be a positive value
+func (server patientsServer) GetPatientsIds(ctx context.Context, req *ppb.PatientsRequest) (*ppb.PaginatedResponse, error) {
+	claims, err := server.VerifyToken(ctx, req.GetToken())
 	if err != nil {
-		return status.Error(codes.Unauthenticated, err.Error())
+		return nil, status.Error(codes.Unauthenticated, err.Error())
 	}
 	if !claims.HasRole("admin") {
-		return status.Error(codes.PermissionDenied, permissionDeniedMessage)
+		return nil, status.Error(codes.PermissionDenied, permissionDeniedMessage)
 	}
+
 	if req.Offset < 0 {
-		return status.Error(codes.InvalidArgument, "offset has to be a non-negative integer")
+		return nil, status.Error(codes.InvalidArgument, "offset has to be a non-negative integer")
 	}
-
 	if req.Limit <= 0 {
-		return status.Error(codes.InvalidArgument, "offset has to be a positive integer")
+		return nil, status.Error(codes.InvalidArgument, "offset has to be a positive integer")
+	}
+	if req.Limit > maxPaginationLimit {
+		return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("maximum allowed limit values is %d", maxPaginationLimit))
 	}
 
-	var patients []Patient
-	err = server.db.NewSelect().Model(&patients).Offset(int(req.Offset)).Limit(int(req.Limit)).Scan(dispatcher.Context())
+	var ids []int32
+	baseQuery := server.db.NewSelect().Model((*Patient)(nil)).Column("id")
+	err = baseQuery.
+		Offset(int(req.Offset)).
+		Limit(int(req.Limit)).
+		Scan(ctx, &ids)
 	if err != nil {
-		return status.Error(codes.Internal, fmt.Errorf("failed to fetch users: %w", err).Error())
+		return nil, status.Error(codes.Internal, fmt.Errorf("failed to fetch users: %w", err).Error())
+	}
+	count, err := baseQuery.Count(ctx)
+	if err != nil {
+		return nil, status.Error(codes.Internal, fmt.Errorf("failed to count users: %w", err).Error())
 	}
 
-	for _, patient := range patients {
-		if err := dispatcher.Send(patient.toGRPC()); err != nil {
-			return status.Error(codes.Internal, fmt.Errorf("error occcured while sending users: %w", err).Error())
-		}
-	}
-	return nil
+	return &ppb.PaginatedResponse{
+		Count:   int32(count),
+		Results: ids,
+	}, nil
 }
 
-// createPatientsServer initializing a PatientServer with all the necessary fields.
+// createPatientsServer initializes a patientsServer with all the necessary fields.
 func createPatientsServer() (*patientsServer, error) {
 	base, err := ms.CreateBaseServiceServer()
 	if err != nil {
 		return nil, err
 	}
-	addr, err := ms.GetRequiredEnv("DB_ADDR")
+	addr, err := ms.GetRequiredEnv(envDBAddress)
 	if err != nil {
 		return nil, err
 	}
-	user, err := ms.GetRequiredEnv("DB_USER")
+	user, err := ms.GetRequiredEnv(envDBUser)
 	if err != nil {
 		return nil, err
 	}
-	password, err := ms.GetRequiredEnv("DB_PASSWORD")
+	password, err := ms.GetRequiredEnv(envDBPassword)
 	if err != nil {
 		return nil, err
 	}
-	database, err := ms.GetRequiredEnv("DB_DATABASE")
+	database, err := ms.GetRequiredEnv(envDBDatabase)
 	if err != nil {
 		return nil, err
 	}
@@ -103,13 +134,13 @@ func createPatientsServer() (*patientsServer, error) {
 		pgdriver.WithUser(user),
 		pgdriver.WithPassword(password),
 		pgdriver.WithDatabase(database),
-		pgdriver.WithApplicationName("patients"),
+		pgdriver.WithApplicationName(applicationName),
 		pgdriver.WithInsecure(true),
 	)
 	db := bun.NewDB(sql.OpenDB(connector), pgdialect.New())
 	db.AddQueryHook(bundebug.NewQueryHook(
 		bundebug.WithVerbose(true),
-		bundebug.FromEnv("BUNDEBUG"),
+		bundebug.FromEnv(envBunDebugLevel),
 	))
 	return &patientsServer{BaseServiceServer: base, db: db}, nil
 }
