@@ -80,7 +80,7 @@ func (server patientsServer) GetPatientsIds(ctx context.Context, req *ppb.Patien
 		return nil, status.Error(codes.InvalidArgument, "offset has to be a non-negative integer")
 	}
 	if req.Limit <= 0 {
-		return nil, status.Error(codes.InvalidArgument, "offset has to be a positive integer")
+		return nil, status.Error(codes.InvalidArgument, "limit has to be a positive integer")
 	}
 	if req.Limit > maxPaginationLimit {
 		return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("maximum allowed limit values is %d", maxPaginationLimit))
