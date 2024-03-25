@@ -3,7 +3,11 @@ package main
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
+	"log"
+	"net"
+
 	ms "github.com/TekClinic/MicroService-Lib"
 	ppb "github.com/TekClinic/Patients-MicroService/patients_protobuf"
 	"github.com/uptrace/bun"
@@ -13,11 +17,9 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"log"
-	"net"
 )
 
-// patientsServer is an implementation of GRPC patient microservice. It provides access to database via db field
+// patientsServer is an implementation of GRPC patient microservice. It provides access to database via db field.
 type patientsServer struct {
 	ppb.UnimplementedPatientsServiceServer
 	ms.BaseServiceServer
@@ -41,7 +43,7 @@ const (
 // GetPatient returns a patient that corresponds to the given id
 // Requires authentication. If authentication is not valid, codes.Unauthenticated is returned
 // Requires admin role. If roles is not sufficient, codes.PermissionDenied is returned
-// If patient with a given id doesn't exist, codes.NotFound is returned
+// If patient with a given id doesn't exist, codes.NotFound is returned.
 func (server patientsServer) GetPatient(ctx context.Context, req *ppb.PatientRequest) (*ppb.Patient, error) {
 	claims, err := server.VerifyToken(ctx, req.GetToken())
 	if err != nil {
@@ -52,22 +54,23 @@ func (server patientsServer) GetPatient(ctx context.Context, req *ppb.PatientReq
 	}
 
 	patient := new(Patient)
-	err = server.db.NewSelect().Model(patient).Where("? = ?", bun.Ident("id"), req.Id).Scan(ctx)
+	err = server.db.NewSelect().Model(patient).Where("? = ?", bun.Ident("id"), req.GetId()).Scan(ctx)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, status.Error(codes.NotFound, "User is not found")
+		}
 		return nil, status.Error(codes.Internal, fmt.Errorf("failed to fetch a user by id: %w", err).Error())
-	}
-	if patient == nil {
-		return nil, status.Error(codes.NotFound, "User is not found")
 	}
 	return patient.toGRPC(), nil
 }
 
-// GetPatientsIds returns a list of patients' ids with given filters and pagination
+// GetPatientsIDs returns a list of patients' ids with given filters and pagination
 // Requires authentication. If authentication is not valid, codes.Unauthenticated is returned
 // Requires admin role. If roles is not sufficient, codes.PermissionDenied is returned
 // Offset value is used for a pagination. Required be a non-negative value
-// Limit value is used for a pagination. Required to be a positive value
-func (server patientsServer) GetPatientsIds(ctx context.Context, req *ppb.PatientsRequest) (*ppb.PaginatedResponse, error) {
+// Limit value is used for a pagination. Required to be a positive value.
+func (server patientsServer) GetPatientsIDs(ctx context.Context,
+	req *ppb.PatientsRequest) (*ppb.PaginatedResponse, error) {
 	claims, err := server.VerifyToken(ctx, req.GetToken())
 	if err != nil {
 		return nil, status.Error(codes.Unauthenticated, err.Error())
@@ -76,21 +79,21 @@ func (server patientsServer) GetPatientsIds(ctx context.Context, req *ppb.Patien
 		return nil, status.Error(codes.PermissionDenied, permissionDeniedMessage)
 	}
 
-	if req.Offset < 0 {
+	if req.GetOffset() < 0 {
 		return nil, status.Error(codes.InvalidArgument, "offset has to be a non-negative integer")
 	}
-	if req.Limit <= 0 {
+	if req.GetLimit() <= 0 {
 		return nil, status.Error(codes.InvalidArgument, "limit has to be a positive integer")
 	}
-	if req.Limit > maxPaginationLimit {
+	if req.GetLimit() > maxPaginationLimit {
 		return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("maximum allowed limit values is %d", maxPaginationLimit))
 	}
 
 	var ids []int32
 	baseQuery := server.db.NewSelect().Model((*Patient)(nil)).Column("id")
 	err = baseQuery.
-		Offset(int(req.Offset)).
-		Limit(int(req.Limit)).
+		Offset(int(req.GetOffset())).
+		Limit(int(req.GetLimit())).
 		Scan(ctx, &ids)
 	if err != nil {
 		return nil, status.Error(codes.Internal, fmt.Errorf("failed to fetch users: %w", err).Error())
@@ -165,7 +168,7 @@ func main() {
 	ppb.RegisterPatientsServiceServer(srv, service)
 
 	log.Println("Server listening on :" + service.GetPort())
-	if err := srv.Serve(listen); err != nil {
+	if err = srv.Serve(listen); err != nil {
 		log.Fatalf("Failed to serve: %v", err)
 	}
 }

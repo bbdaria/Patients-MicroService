@@ -2,33 +2,34 @@ package main
 
 import (
 	"context"
+	"time"
+
 	ppb "github.com/TekClinic/Patients-MicroService/patients_protobuf"
 	sf "github.com/sa-/slicefunk"
 	"github.com/uptrace/bun"
-	"time"
 )
 
-// PersonalId defines a schema of personal ids
-type PersonalId struct {
+// PersonalID defines a schema of personal ids.
+type PersonalID struct {
 	ID   string
 	Type string
 }
 
-// EmergencyContact defines a schema of emergency contacts
+// EmergencyContact defines a schema of emergency contacts.
 type EmergencyContact struct {
 	ID        int32 `bun:",pk,autoincrement"`
 	Name      string
 	Closeness string
 	Phone     string
-	PatientId int32
+	PatientID int32
 }
 
-// Patient defines a schema of patients
+// Patient defines a schema of patients.
 type Patient struct {
 	ID                int32 `bun:",pk,autoincrement"`
 	Active            bool
 	Name              string
-	PersonalId        PersonalId `bun:"embed:personal_id_"`
+	PersonalID        PersonalID `bun:"embed:personal_id_"`
 	Gender            ppb.Patient_Gender
 	PhoneNumber       string
 	Languages         []string `bun:",array"`
@@ -38,15 +39,15 @@ type Patient struct {
 	SpecialNote       string
 }
 
-// toGRPC returns a GRPC version of PersonalId
-func (personalId PersonalId) toGRPC() *ppb.Patient_PersonalId {
+// toGRPC returns a GRPC version of PersonalID.
+func (personalId PersonalID) toGRPC() *ppb.Patient_PersonalId {
 	return &ppb.Patient_PersonalId{
 		Id:   personalId.ID,
 		Type: personalId.Type,
 	}
 }
 
-// toGRPC returns a GRPC version of EmergencyContact
+// toGRPC returns a GRPC version of EmergencyContact.
 func (contact EmergencyContact) toGRPC() *ppb.Patient_EmergencyContact {
 	return &ppb.Patient_EmergencyContact{
 		Name:      contact.Name,
@@ -55,27 +56,27 @@ func (contact EmergencyContact) toGRPC() *ppb.Patient_EmergencyContact {
 	}
 }
 
-// toGRPC returns a GRPC version of Patient
+// toGRPC returns a GRPC version of Patient.
 func (patient Patient) toGRPC() *ppb.Patient {
-	EmergencyContacts := sf.Map(patient.EmergencyContacts,
+	emergencyContacts := sf.Map(patient.EmergencyContacts,
 		func(contact *EmergencyContact) *ppb.Patient_EmergencyContact { return contact.toGRPC() })
 	return &ppb.Patient{
 		Id:                patient.ID,
 		Active:            patient.Active,
 		Name:              patient.Name,
-		PersonalId:        patient.PersonalId.toGRPC(),
+		PersonalId:        patient.PersonalID.toGRPC(),
 		Gender:            patient.Gender,
 		PhoneNumber:       patient.PhoneNumber,
 		Languages:         patient.Languages,
-		BirthDate:         patient.BirthDate.Format(time.DateOnly),
+		BirthDate:         patient.BirthDate.Format("2006-01-02"),
 		Age:               int32(time.Now().Year() - patient.BirthDate.Year()),
 		ReferredBy:        patient.ReferredBy,
-		EmergencyContacts: EmergencyContacts,
+		EmergencyContacts: emergencyContacts,
 		SpecialNote:       patient.SpecialNote,
 	}
 }
 
-// createSchemaIfNotExists creates all required schemas for patient microservice
+// createSchemaIfNotExists creates all required schemas for patient microservice.
 func createSchemaIfNotExists(ctx context.Context, db *bun.DB) error {
 	models := []interface{}{
 		(*Patient)(nil),
