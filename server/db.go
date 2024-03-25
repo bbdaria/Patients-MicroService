@@ -40,8 +40,8 @@ type Patient struct {
 }
 
 // toGRPC returns a GRPC version of PersonalID.
-func (personalId PersonalID) toGRPC() *ppb.Patient_PersonalId {
-	return &ppb.Patient_PersonalId{
+func (personalId PersonalID) toGRPC() *ppb.Patient_PersonalID {
+	return &ppb.Patient_PersonalID{
 		Id:   personalId.ID,
 		Type: personalId.Type,
 	}

@@ -190,6 +190,9 @@ linters-settings:
     # Default: false
     all: true
 
+  gomoddirectives:
+    replace-local: true
+
 
 linters:
   disable-all: true

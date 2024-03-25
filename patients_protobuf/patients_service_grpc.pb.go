@@ -23,7 +23,7 @@ const _ = grpc.SupportPackageIsVersion7
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type PatientsServiceClient interface {
 	GetPatient(ctx context.Context, in *PatientRequest, opts ...grpc.CallOption) (*Patient, error)
-	GetPatientsIds(ctx context.Context, in *PatientsRequest, opts ...grpc.CallOption) (*PaginatedResponse, error)
+	GetPatientsIDs(ctx context.Context, in *PatientsRequest, opts ...grpc.CallOption) (*PaginatedResponse, error)
 }
 
 type patientsServiceClient struct {
@@ -43,9 +43,9 @@ func (c *patientsServiceClient) GetPatient(ctx context.Context, in *PatientReque
 	return out, nil
 }
 
-func (c *patientsServiceClient) GetPatientsIds(ctx context.Context, in *PatientsRequest, opts ...grpc.CallOption) (*PaginatedResponse, error) {
+func (c *patientsServiceClient) GetPatientsIDs(ctx context.Context, in *PatientsRequest, opts ...grpc.CallOption) (*PaginatedResponse, error) {
 	out := new(PaginatedResponse)
-	err := c.cc.Invoke(ctx, "/patients.PatientsService/GetPatientsIds", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/patients.PatientsService/GetPatientsIDs", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -57,7 +57,7 @@ func (c *patientsServiceClient) GetPatientsIds(ctx context.Context, in *Patients
 // for forward compatibility
 type PatientsServiceServer interface {
 	GetPatient(context.Context, *PatientRequest) (*Patient, error)
-	GetPatientsIds(context.Context, *PatientsRequest) (*PaginatedResponse, error)
+	GetPatientsIDs(context.Context, *PatientsRequest) (*PaginatedResponse, error)
 	mustEmbedUnimplementedPatientsServiceServer()
 }
 
@@ -68,8 +68,8 @@ type UnimplementedPatientsServiceServer struct {
 func (UnimplementedPatientsServiceServer) GetPatient(context.Context, *PatientRequest) (*Patient, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetPatient not implemented")
 }
-func (UnimplementedPatientsServiceServer) GetPatientsIds(context.Context, *PatientsRequest) (*PaginatedResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetPatientsIds not implemented")
+func (UnimplementedPatientsServiceServer) GetPatientsIDs(context.Context, *PatientsRequest) (*PaginatedResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetPatientsIDs not implemented")
 }
 func (UnimplementedPatientsServiceServer) mustEmbedUnimplementedPatientsServiceServer() {}
 
@@ -102,20 +102,20 @@ func _PatientsService_GetPatient_Handler(srv interface{}, ctx context.Context, d
 	return interceptor(ctx, in, info, handler)
 }
 
-func _PatientsService_GetPatientsIds_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _PatientsService_GetPatientsIDs_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(PatientsRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(PatientsServiceServer).GetPatientsIds(ctx, in)
+		return srv.(PatientsServiceServer).GetPatientsIDs(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/patients.PatientsService/GetPatientsIds",
+		FullMethod: "/patients.PatientsService/GetPatientsIDs",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PatientsServiceServer).GetPatientsIds(ctx, req.(*PatientsRequest))
+		return srv.(PatientsServiceServer).GetPatientsIDs(ctx, req.(*PatientsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -132,8 +132,8 @@ var PatientsService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _PatientsService_GetPatient_Handler,
 		},
 		{
-			MethodName: "GetPatientsIds",
-			Handler:    _PatientsService_GetPatientsIds_Handler,
+			MethodName: "GetPatientsIDs",
+			Handler:    _PatientsService_GetPatientsIDs_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

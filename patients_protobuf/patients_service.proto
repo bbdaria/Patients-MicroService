@@ -6,12 +6,12 @@ package patients;
 
 service PatientsService {
   rpc GetPatient(PatientRequest) returns (Patient);
-  rpc GetPatientsIds(PatientsRequest) returns (PaginatedResponse);
+  rpc GetPatientsIDs(PatientsRequest) returns (PaginatedResponse);
 }
 
 message PatientRequest {
   string token = 1;
-  int64 id = 2;
+  int32 id = 2;
 }
 
 message PatientsRequest {
@@ -26,8 +26,7 @@ message PaginatedResponse {
 }
 
 message Patient {
-
-  message PersonalId {
+  message PersonalID {
     string id = 1;
     string type = 2;
   }
@@ -47,7 +46,7 @@ message Patient {
   int32 id = 1;
   bool active = 2;
   string name = 3;
-  PersonalId personal_id = 4;
+  PersonalID personal_id = 4;
   Gender gender = 5;
   string phone_number = 6;
   repeated string languages = 7;
