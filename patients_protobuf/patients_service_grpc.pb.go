@@ -24,6 +24,7 @@ const _ = grpc.SupportPackageIsVersion7
 type PatientsServiceClient interface {
 	GetPatient(ctx context.Context, in *PatientRequest, opts ...grpc.CallOption) (*Patient, error)
 	GetPatientsIDs(ctx context.Context, in *PatientsRequest, opts ...grpc.CallOption) (*PaginatedResponse, error)
+	CreatePatient(ctx context.Context, in *CreatePatientRequest, opts ...grpc.CallOption) (*PatientID, error)
 }
 
 type patientsServiceClient struct {
@@ -52,12 +53,22 @@ func (c *patientsServiceClient) GetPatientsIDs(ctx context.Context, in *Patients
 	return out, nil
 }
 
+func (c *patientsServiceClient) CreatePatient(ctx context.Context, in *CreatePatientRequest, opts ...grpc.CallOption) (*PatientID, error) {
+	out := new(PatientID)
+	err := c.cc.Invoke(ctx, "/patients.PatientsService/CreatePatient", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // PatientsServiceServer is the server API for PatientsService service.
 // All implementations must embed UnimplementedPatientsServiceServer
 // for forward compatibility
 type PatientsServiceServer interface {
 	GetPatient(context.Context, *PatientRequest) (*Patient, error)
 	GetPatientsIDs(context.Context, *PatientsRequest) (*PaginatedResponse, error)
+	CreatePatient(context.Context, *CreatePatientRequest) (*PatientID, error)
 	mustEmbedUnimplementedPatientsServiceServer()
 }
 
@@ -70,6 +81,9 @@ func (UnimplementedPatientsServiceServer) GetPatient(context.Context, *PatientRe
 }
 func (UnimplementedPatientsServiceServer) GetPatientsIDs(context.Context, *PatientsRequest) (*PaginatedResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetPatientsIDs not implemented")
+}
+func (UnimplementedPatientsServiceServer) CreatePatient(context.Context, *CreatePatientRequest) (*PatientID, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreatePatient not implemented")
 }
 func (UnimplementedPatientsServiceServer) mustEmbedUnimplementedPatientsServiceServer() {}
 
@@ -120,6 +134,24 @@ func _PatientsService_GetPatientsIDs_Handler(srv interface{}, ctx context.Contex
 	return interceptor(ctx, in, info, handler)
 }
 
+func _PatientsService_CreatePatient_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreatePatientRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PatientsServiceServer).CreatePatient(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/patients.PatientsService/CreatePatient",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PatientsServiceServer).CreatePatient(ctx, req.(*CreatePatientRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // PatientsService_ServiceDesc is the grpc.ServiceDesc for PatientsService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -134,6 +166,10 @@ var PatientsService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetPatientsIDs",
 			Handler:    _PatientsService_GetPatientsIDs_Handler,
+		},
+		{
+			MethodName: "CreatePatient",
+			Handler:    _PatientsService_CreatePatient_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

@@ -9,6 +9,8 @@ import (
 	"github.com/uptrace/bun"
 )
 
+const birthDateFormat = "2006-01-02"
+
 // PersonalID defines a schema of personal ids.
 type PersonalID struct {
 	ID   string
@@ -17,26 +19,26 @@ type PersonalID struct {
 
 // EmergencyContact defines a schema of emergency contacts.
 type EmergencyContact struct {
-	ID        int32 `bun:",pk,autoincrement"`
-	Name      string
-	Closeness string
-	Phone     string
+	ID        int32  `bun:",pk,autoincrement"`
+	Name      string `validate:"required,min=1,max=100"`
+	Closeness string `validate:"required,min=1,max=100"`
+	Phone     string `validate:"required,e164"`
 	PatientID int32
 }
 
 // Patient defines a schema of patients.
 type Patient struct {
-	ID                int32 `bun:",pk,autoincrement"`
-	Active            bool
-	Name              string
-	PersonalID        PersonalID `bun:"embed:personal_id_"`
-	Gender            ppb.Patient_Gender
-	PhoneNumber       string
-	Languages         []string `bun:",array"`
-	BirthDate         time.Time
-	ReferredBy        string
-	EmergencyContacts []*EmergencyContact `bun:"rel:has-many,join:id=patient_id"`
-	SpecialNote       string
+	ID                int32               `bun:",pk,autoincrement" `
+	Active            bool                ``
+	Name              string              `validate:"required,min=1,max=100"`
+	PersonalID        PersonalID          `bun:"embed:personal_id_" validate:"required"`
+	Gender            ppb.Patient_Gender  ``
+	PhoneNumber       string              `validate:"omitempty,e164"`
+	Languages         []string            `bun:",array" validate:"max=10,dive,max=100"`
+	BirthDate         time.Time           `validate:"required"`
+	ReferredBy        string              `validate:"max=100"`
+	EmergencyContacts []*EmergencyContact `bun:"rel:has-many,join:id=patient_id" validate:"max=10,dive"`
+	SpecialNote       string              `validate:"max=500"`
 }
 
 // toGRPC returns a GRPC version of PersonalID.
@@ -68,7 +70,7 @@ func (patient Patient) toGRPC() *ppb.Patient {
 		Gender:            patient.Gender,
 		PhoneNumber:       patient.PhoneNumber,
 		Languages:         patient.Languages,
-		BirthDate:         patient.BirthDate.Format("2006-01-02"),
+		BirthDate:         patient.BirthDate.Format(birthDateFormat),
 		Age:               int32(time.Now().Year() - patient.BirthDate.Year()),
 		ReferredBy:        patient.ReferredBy,
 		EmergencyContacts: emergencyContacts,

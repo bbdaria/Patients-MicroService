@@ -193,6 +193,9 @@ linters-settings:
   gomoddirectives:
     replace-local: true
 
+  gosec:
+    excludes:
+      - G601
 
 linters:
   disable-all: true

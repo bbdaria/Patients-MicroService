@@ -7,6 +7,7 @@ package patients;
 service PatientsService {
   rpc GetPatient(PatientRequest) returns (Patient);
   rpc GetPatientsIDs(PatientsRequest) returns (PaginatedResponse);
+  rpc CreatePatient(CreatePatientRequest) returns (PatientID);
 }
 
 message PatientRequest {
@@ -20,9 +21,26 @@ message PatientsRequest {
   int32 offset = 3;
 }
 
+message CreatePatientRequest {
+  string token = 1;
+  string name = 2;
+  Patient.PersonalID personal_id = 3;
+  Patient.Gender gender = 4;
+  string phone_number = 5;
+  repeated string languages = 6;
+  string birth_date = 7;
+  repeated Patient.EmergencyContact emergency_contacts = 8;
+  string referred_by = 9;
+  string special_note = 10;
+}
+
 message PaginatedResponse {
   int32 count = 1;
   repeated int32 results = 2;
+}
+
+message PatientID {
+  int32 id = 1;
 }
 
 message Patient {

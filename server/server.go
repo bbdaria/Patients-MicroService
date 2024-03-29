@@ -7,6 +7,10 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"time"
+
+	"github.com/go-playground/validator/v10"
+	sf "github.com/sa-/slicefunk"
 
 	ms "github.com/TekClinic/MicroService-Lib"
 	ppb "github.com/TekClinic/Patients-MicroService/patients_protobuf"
@@ -24,6 +28,8 @@ type patientsServer struct {
 	ppb.UnimplementedPatientsServiceServer
 	ms.BaseServiceServer
 	db *bun.DB
+	// use a single instance of Validate, it caches struct info
+	validate *validator.Validate
 }
 
 const (
@@ -113,6 +119,72 @@ func (server patientsServer) GetPatientsIDs(ctx context.Context,
 	}, nil
 }
 
+// CreatePatient creates a patient with the given specifications
+// Requires authentication. If authentication is not valid, codes.Unauthenticated is returned
+// Requires admin role. If roles is not sufficient, codes.PermissionDenied is returned
+// If some argument is missing or not valid, codes.InvalidArgument is returned.
+func (server patientsServer) CreatePatient(ctx context.Context,
+	req *ppb.CreatePatientRequest) (*ppb.PatientID, error) {
+	claims, err := server.VerifyToken(ctx, req.GetToken())
+	if err != nil {
+		return nil, status.Error(codes.Unauthenticated, err.Error())
+	}
+	if !claims.HasRole("admin") {
+		return nil, status.Error(codes.PermissionDenied, permissionDeniedMessage)
+	}
+
+	birthDate, err := time.Parse(birthDateFormat, req.GetBirthDate())
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument,
+			fmt.Errorf("failed to parse birth date: %w", err).Error())
+	}
+
+	patient := Patient{
+		Active: true,
+		Name:   req.GetName(),
+		PersonalID: PersonalID{
+			ID:   req.GetPersonalID().GetId(),
+			Type: req.GetPersonalID().GetType(),
+		},
+		Gender:      req.GetGender(),
+		PhoneNumber: req.GetPhoneNumber(),
+		Languages:   req.GetLanguages(),
+		BirthDate:   birthDate,
+		ReferredBy:  req.GetReferredBy(),
+		EmergencyContacts: sf.Map(req.GetEmergencyContacts(),
+			func(contact *ppb.Patient_EmergencyContact) *EmergencyContact {
+				return &EmergencyContact{
+					Name:      contact.GetName(),
+					Closeness: contact.GetCloseness(),
+					Phone:     contact.GetPhone(),
+				}
+			}),
+		SpecialNote: req.GetSpecialNote(),
+	}
+	if err = server.validate.Struct(patient); err != nil {
+		return nil, status.Error(codes.InvalidArgument, err.Error())
+	}
+	err = server.db.RunInTx(ctx, &sql.TxOptions{}, func(ctx context.Context, tx bun.Tx) error {
+		// firstly insert the patient itself
+		if _, txErr := tx.NewInsert().Model(&patient).Exec(ctx); txErr != nil {
+			return txErr
+		}
+		// afterward insert all its emergence contacts
+		for _, contact := range patient.EmergencyContacts {
+			contact.PatientID = patient.ID
+
+			if _, txErr := tx.NewInsert().Model(contact).Exec(ctx); txErr != nil {
+				return txErr
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, status.Error(codes.Internal, fmt.Errorf("failed to create a patient: %w", err).Error())
+	}
+	return &ppb.PatientID{Id: patient.ID}, nil
+}
+
 // createPatientsServer initializes a patientsServer with all the necessary fields.
 func createPatientsServer() (*patientsServer, error) {
 	base, err := ms.CreateBaseServiceServer()
@@ -149,7 +221,10 @@ func createPatientsServer() (*patientsServer, error) {
 		bundebug.WithVerbose(true),
 		bundebug.FromEnv(envBunDebugLevel),
 	))
-	return &patientsServer{BaseServiceServer: base, db: db}, nil
+	return &patientsServer{
+		BaseServiceServer: base,
+		db:                db,
+		validate:          validator.New(validator.WithRequiredStructEnabled())}, nil
 }
 
 func main() {
