@@ -54,7 +54,11 @@ func (server patientsServer) GetPatient(ctx context.Context, req *ppb.PatientReq
 	}
 
 	patient := new(Patient)
-	err = server.db.NewSelect().Model(patient).Where("? = ?", bun.Ident("id"), req.GetId()).Scan(ctx)
+	err = server.db.NewSelect().
+		Model(patient).
+		Relation("EmergencyContacts").
+		Where("? = ?", bun.Ident("id"), req.GetId()).
+		Scan(ctx)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, status.Error(codes.NotFound, "User is not found")
