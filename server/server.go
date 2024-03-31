@@ -46,9 +46,9 @@ const (
 	maxPaginationLimit = 50
 )
 
-// GetPatient returns a patient that corresponds to the given id
-// Requires authentication. If authentication is not valid, codes.Unauthenticated is returned
-// Requires admin role. If roles is not sufficient, codes.PermissionDenied is returned
+// GetPatient returns a patient that corresponds to the given id.
+// Requires authentication. If authentication is not valid, codes.Unauthenticated is returned.
+// Requires admin role. If roles is not sufficient, codes.PermissionDenied is returned.
 // If patient with a given id doesn't exist, codes.NotFound is returned.
 func (server patientsServer) GetPatient(ctx context.Context, req *ppb.PatientRequest) (*ppb.Patient, error) {
 	claims, err := server.VerifyToken(ctx, req.GetToken())
@@ -74,10 +74,10 @@ func (server patientsServer) GetPatient(ctx context.Context, req *ppb.PatientReq
 	return patient.toGRPC(), nil
 }
 
-// GetPatientsIDs returns a list of patients' ids with given filters and pagination
-// Requires authentication. If authentication is not valid, codes.Unauthenticated is returned
-// Requires admin role. If roles is not sufficient, codes.PermissionDenied is returned
-// Offset value is used for a pagination. Required be a non-negative value
+// GetPatientsIDs returns a list of patients' ids with given filters and pagination.
+// Requires authentication. If authentication is not valid, codes.Unauthenticated is returned.
+// Requires admin role. If roles is not sufficient, codes.PermissionDenied is returned.
+// Offset value is used for a pagination. Required be a non-negative value.
 // Limit value is used for a pagination. Required to be a positive value.
 func (server patientsServer) GetPatientsIDs(ctx context.Context,
 	req *ppb.PatientsRequest) (*ppb.PaginatedResponse, error) {
@@ -119,9 +119,9 @@ func (server patientsServer) GetPatientsIDs(ctx context.Context,
 	}, nil
 }
 
-// CreatePatient creates a patient with the given specifications
-// Requires authentication. If authentication is not valid, codes.Unauthenticated is returned
-// Requires admin role. If roles is not sufficient, codes.PermissionDenied is returned
+// CreatePatient creates a patient with the given specifications.
+// Requires authentication. If authentication is not valid, codes.Unauthenticated is returned.
+// Requires admin role. If roles is not sufficient, codes.PermissionDenied is returned.
 // If some argument is missing or not valid, codes.InvalidArgument is returned.
 func (server patientsServer) CreatePatient(ctx context.Context,
 	req *ppb.CreatePatientRequest) (*ppb.PatientID, error) {
