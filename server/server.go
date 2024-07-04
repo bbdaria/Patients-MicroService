@@ -23,7 +23,7 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-// patientsServer is an implementation of GRPC patient microservice. It provides access to database via db field.
+// patientsServer is an implementation of GRPC patient microservice. It provides access to a database via db field.
 type patientsServer struct {
 	ppb.UnimplementedPatientsServiceServer
 	ms.BaseServiceServer
@@ -48,9 +48,10 @@ const (
 
 // GetPatient returns a patient that corresponds to the given id.
 // Requires authentication. If authentication is not valid, codes.Unauthenticated is returned.
-// Requires admin role. If roles is not sufficient, codes.PermissionDenied is returned.
-// If patient with a given id doesn't exist, codes.NotFound is returned.
-func (server patientsServer) GetPatient(ctx context.Context, req *ppb.PatientRequest) (*ppb.Patient, error) {
+// Requires an admin role. If roles are not sufficient, codes.PermissionDenied is returned.
+// If a patient with a given id doesn't exist, codes.NotFound is returned.
+func (server patientsServer) GetPatient(ctx context.Context, req *ppb.GetPatientRequest) (
+	*ppb.GetPatientResponse, error) {
 	claims, err := server.VerifyToken(ctx, req.GetToken())
 	if err != nil {
 		return nil, status.Error(codes.Unauthenticated, err.Error())
@@ -71,16 +72,16 @@ func (server patientsServer) GetPatient(ctx context.Context, req *ppb.PatientReq
 		}
 		return nil, status.Error(codes.Internal, fmt.Errorf("failed to fetch a user by id: %w", err).Error())
 	}
-	return patient.toGRPC(), nil
+	return &ppb.GetPatientResponse{Patient: patient.toGRPC()}, nil
 }
 
 // GetPatientsIDs returns a list of patients' ids with given filters and pagination.
 // Requires authentication. If authentication is not valid, codes.Unauthenticated is returned.
-// Requires admin role. If roles is not sufficient, codes.PermissionDenied is returned.
-// Offset value is used for a pagination. Required be a non-negative value.
-// Limit value is used for a pagination. Required to be a positive value.
+// Requires an admin role. If roles are not sufficient, codes.PermissionDenied is returned.
+// Offset value is used for pagination. Required be a non-negative value.
+// Limit value is used for pagination. Required to be a positive value.
 func (server patientsServer) GetPatientsIDs(ctx context.Context,
-	req *ppb.PatientsRequest) (*ppb.PaginatedResponse, error) {
+	req *ppb.GetPatientsIDsRequest) (*ppb.GetPatientsIDsResponse, error) {
 	claims, err := server.VerifyToken(ctx, req.GetToken())
 	if err != nil {
 		return nil, status.Error(codes.Unauthenticated, err.Error())
@@ -113,7 +114,7 @@ func (server patientsServer) GetPatientsIDs(ctx context.Context,
 		return nil, status.Error(codes.Internal, fmt.Errorf("failed to count users: %w", err).Error())
 	}
 
-	return &ppb.PaginatedResponse{
+	return &ppb.GetPatientsIDsResponse{
 		Count:   int32(count),
 		Results: ids,
 	}, nil
@@ -121,10 +122,10 @@ func (server patientsServer) GetPatientsIDs(ctx context.Context,
 
 // CreatePatient creates a patient with the given specifications.
 // Requires authentication. If authentication is not valid, codes.Unauthenticated is returned.
-// Requires admin role. If roles is not sufficient, codes.PermissionDenied is returned.
+// Requires an admin role. If roles are not sufficient, codes.PermissionDenied is returned.
 // If some argument is missing or not valid, codes.InvalidArgument is returned.
 func (server patientsServer) CreatePatient(ctx context.Context,
-	req *ppb.CreatePatientRequest) (*ppb.PatientID, error) {
+	req *ppb.CreatePatientRequest) (*ppb.CreatePatientResponse, error) {
 	claims, err := server.VerifyToken(ctx, req.GetToken())
 	if err != nil {
 		return nil, status.Error(codes.Unauthenticated, err.Error())
@@ -143,8 +144,8 @@ func (server patientsServer) CreatePatient(ctx context.Context,
 		Active: true,
 		Name:   req.GetName(),
 		PersonalID: PersonalID{
-			ID:   req.GetPersonalID().GetId(),
-			Type: req.GetPersonalID().GetType(),
+			ID:   req.GetPersonalId().GetId(),
+			Type: req.GetPersonalId().GetType(),
 		},
 		Gender:      req.GetGender(),
 		PhoneNumber: req.GetPhoneNumber(),
@@ -165,11 +166,11 @@ func (server patientsServer) CreatePatient(ctx context.Context,
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
 	err = server.db.RunInTx(ctx, &sql.TxOptions{}, func(ctx context.Context, tx bun.Tx) error {
-		// firstly insert the patient itself
+		// firstly, insert the patient itself
 		if _, txErr := tx.NewInsert().Model(&patient).Exec(ctx); txErr != nil {
 			return txErr
 		}
-		// afterward insert all its emergence contacts
+		// afterward, insert all its emergence contacts
 		for _, contact := range patient.EmergencyContacts {
 			contact.PatientID = patient.ID
 
@@ -182,7 +183,7 @@ func (server patientsServer) CreatePatient(ctx context.Context,
 	if err != nil {
 		return nil, status.Error(codes.Internal, fmt.Errorf("failed to create a patient: %w", err).Error())
 	}
-	return &ppb.PatientID{Id: patient.ID}, nil
+	return &ppb.CreatePatientResponse{Id: patient.ID}, nil
 }
 
 // createPatientsServer initializes a patientsServer with all the necessary fields.

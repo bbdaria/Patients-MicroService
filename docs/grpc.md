@@ -2,18 +2,102 @@
 
 ### GetPatient
 
-Retrieves details of a specific patient identified by their ID.
+Retrieves the details of a specific patient by their ID.
 
 **Request:**
 
 ```protobuf
-message PatientRequest {
+message GetPatientRequest {
   string token = 1; // Authentication token
   int32 id = 2; // ID of the patient
 }
 ```
 
 **Response:**
+
+```protobuf
+message GetPatientResponse {
+  Patient patient = 1; // Details of the patient
+}
+```
+
+**Errors:**
+
+- `Unauthenticated` - Token is not valid or expired.
+- `PermissionDenied` - Token is not authorized with the *admin* role.
+- `NotFound` - Patient with the given ID does not exist.
+
+---
+
+### GetPatientsIDs
+
+Retrieves a list of patient IDs with pagination support.
+
+**Request:**
+
+```protobuf
+message GetPatientsIDsRequest {
+  string token = 1; // Authentication token
+  int32 limit = 2; // Maximum number of results to return
+  int32 offset = 3; // Offset for pagination
+}
+```
+
+**Response:**
+
+```protobuf
+message GetPatientsIDsResponse {
+  int32 count = 1; // Total number of patients
+  repeated int32 results = 2; // List of patient IDs
+}
+```
+
+**Errors:**
+
+- `Unauthenticated` - Token is not valid or expired.
+- `PermissionDenied` - Token is not authorized with the *admin* role.
+- `InvalidArgument` - `offset` or `limit` parameters are invalid.
+
+---
+
+### CreatePatient
+
+Creates a new patient record with the provided details.
+
+**Request:**
+
+```protobuf
+message CreatePatientRequest {
+  string token = 1; // Authentication token
+  string name = 2; // Name of the patient
+  Patient.PersonalID personal_id = 3; // Personal ID of the patient
+  Patient.Gender gender = 4; // Gender of the patient (optional)
+  string phone_number = 5; // Phone number of the patient (optional)
+  repeated string languages = 6; // Languages spoken by the patient (optional)
+  string birth_date = 7; // Birth date of the patient
+  repeated Patient.EmergencyContact emergency_contacts = 8; // Emergency contacts of the patient (optional)
+  string referred_by = 9; // Who referred the patient (optional)
+  string special_note = 10; // Special notes regarding the patient (optional)
+}
+```
+
+**Response:**
+
+```protobuf
+message CreatePatientResponse {
+  int32 id = 1; // ID of the newly created patient
+}
+```
+
+**Errors:**
+
+- `Unauthenticated` - Token is not valid or expired.
+- `PermissionDenied` - Token is not authorized with the *admin* role.
+- `InvalidArgument` - Required patient information is missing or malformed.
+
+---
+
+## Model Definition
 
 ```protobuf
 message Patient {
@@ -46,73 +130,3 @@ message Patient {
   string special_note = 12; // Special notes regarding the patient
 }
 ```
-
-**Errors:**
-
-- `Unauthenticated` - Token is not valid or expired
-- `PermissionDenied` - Token is not authorized with *admin* role
-- `NotFound` - Patient with the given ID doesn't exist
-
-### GetPatientsIDs
-
-Retrieves a list of patient IDs with pagination support.
-
-**Request:**
-
-```protobuf
-message PatientsRequest {
-  string token = 1; // Authentication token
-  int32 limit = 2; // Maximum number of results to return
-  int32 offset = 3; // Offset for pagination
-}
-```
-
-**Response:**
-
-```protobuf
-message PaginatedResponse {
-  int32 count = 1; // Total number of patients
-  repeated int32 results = 2; // List of patient IDs
-}
-```
-
-**Errors:**
-
-- `Unauthenticated` - Token is not valid or expired
-- `PermissionDenied` - Token is not authorized with *admin* role
-- `InvalidArgument` - `offset` or `limit` parameters don't meet validation requirements
-
-### CreatePatient
-
-Creates a new patient record with provided details.
-
-**Request:**
-
-```protobuf
-message CreatePatientRequest {
-  string token = 1; // Authentication token
-  string name = 2; // Name of the patient
-  PersonalID personal_id = 3; // Personal ID of the patient
-  Gender gender = 4; // Gender of the patient, optional
-  string phone_number = 5; // Phone number of the patient, optional
-  repeated string languages = 6; // Languages spoken by the patient, optional
-  string birth_date = 7; // Birth date of the patient
-  repeated EmergencyContact emergency_contacts = 8; // Emergency contacts of the patient, optional
-  string referred_by = 9; // Who referred the patient, optional
-  string special_note = 10; // Special notes regarding the patient, optional
-}
-```
-
-**Response:**
-
-```protobuf
-message PatientID {
-  int32 id = 1; // ID of the newly created patient
-}
-```
-
-**Errors:**
-
-- `Unauthenticated` - Token is not valid or expired
-- `PermissionDenied` - Token is not authorized with *admin* role
-- `InvalidArgument` - Some required patient info is missing or malformed

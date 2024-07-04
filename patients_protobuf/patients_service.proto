@@ -5,20 +5,29 @@ option go_package = "github.com/TekClinic/Patients-MicroService/patients_protobu
 package patients;
 
 service PatientsService {
-  rpc GetPatient(PatientRequest) returns (Patient);
-  rpc GetPatientsIDs(PatientsRequest) returns (PaginatedResponse);
-  rpc CreatePatient(CreatePatientRequest) returns (PatientID);
+  rpc GetPatient(GetPatientRequest) returns (GetPatientResponse);
+  rpc GetPatientsIDs(GetPatientsIDsRequest) returns (GetPatientsIDsResponse);
+  rpc CreatePatient(CreatePatientRequest) returns (CreatePatientResponse);
 }
 
-message PatientRequest {
+message GetPatientRequest {
   string token = 1;
   int32 id = 2;
 }
 
-message PatientsRequest {
+message GetPatientResponse {
+  Patient patient = 1;
+}
+
+message GetPatientsIDsRequest {
   string token = 1;
   int32 limit = 2;
   int32 offset = 3;
+}
+
+message GetPatientsIDsResponse {
+  int32 count = 1;
+  repeated int32 results = 2;
 }
 
 message CreatePatientRequest {
@@ -34,12 +43,7 @@ message CreatePatientRequest {
   string special_note = 10;
 }
 
-message PaginatedResponse {
-  int32 count = 1;
-  repeated int32 results = 2;
-}
-
-message PatientID {
+message CreatePatientResponse {
   int32 id = 1;
 }
 

@@ -22,9 +22,9 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type PatientsServiceClient interface {
-	GetPatient(ctx context.Context, in *PatientRequest, opts ...grpc.CallOption) (*Patient, error)
-	GetPatientsIDs(ctx context.Context, in *PatientsRequest, opts ...grpc.CallOption) (*PaginatedResponse, error)
-	CreatePatient(ctx context.Context, in *CreatePatientRequest, opts ...grpc.CallOption) (*PatientID, error)
+	GetPatient(ctx context.Context, in *GetPatientRequest, opts ...grpc.CallOption) (*GetPatientResponse, error)
+	GetPatientsIDs(ctx context.Context, in *GetPatientsIDsRequest, opts ...grpc.CallOption) (*GetPatientsIDsResponse, error)
+	CreatePatient(ctx context.Context, in *CreatePatientRequest, opts ...grpc.CallOption) (*CreatePatientResponse, error)
 }
 
 type patientsServiceClient struct {
@@ -35,8 +35,8 @@ func NewPatientsServiceClient(cc grpc.ClientConnInterface) PatientsServiceClient
 	return &patientsServiceClient{cc}
 }
 
-func (c *patientsServiceClient) GetPatient(ctx context.Context, in *PatientRequest, opts ...grpc.CallOption) (*Patient, error) {
-	out := new(Patient)
+func (c *patientsServiceClient) GetPatient(ctx context.Context, in *GetPatientRequest, opts ...grpc.CallOption) (*GetPatientResponse, error) {
+	out := new(GetPatientResponse)
 	err := c.cc.Invoke(ctx, "/patients.PatientsService/GetPatient", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -44,8 +44,8 @@ func (c *patientsServiceClient) GetPatient(ctx context.Context, in *PatientReque
 	return out, nil
 }
 
-func (c *patientsServiceClient) GetPatientsIDs(ctx context.Context, in *PatientsRequest, opts ...grpc.CallOption) (*PaginatedResponse, error) {
-	out := new(PaginatedResponse)
+func (c *patientsServiceClient) GetPatientsIDs(ctx context.Context, in *GetPatientsIDsRequest, opts ...grpc.CallOption) (*GetPatientsIDsResponse, error) {
+	out := new(GetPatientsIDsResponse)
 	err := c.cc.Invoke(ctx, "/patients.PatientsService/GetPatientsIDs", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -53,8 +53,8 @@ func (c *patientsServiceClient) GetPatientsIDs(ctx context.Context, in *Patients
 	return out, nil
 }
 
-func (c *patientsServiceClient) CreatePatient(ctx context.Context, in *CreatePatientRequest, opts ...grpc.CallOption) (*PatientID, error) {
-	out := new(PatientID)
+func (c *patientsServiceClient) CreatePatient(ctx context.Context, in *CreatePatientRequest, opts ...grpc.CallOption) (*CreatePatientResponse, error) {
+	out := new(CreatePatientResponse)
 	err := c.cc.Invoke(ctx, "/patients.PatientsService/CreatePatient", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -66,9 +66,9 @@ func (c *patientsServiceClient) CreatePatient(ctx context.Context, in *CreatePat
 // All implementations must embed UnimplementedPatientsServiceServer
 // for forward compatibility
 type PatientsServiceServer interface {
-	GetPatient(context.Context, *PatientRequest) (*Patient, error)
-	GetPatientsIDs(context.Context, *PatientsRequest) (*PaginatedResponse, error)
-	CreatePatient(context.Context, *CreatePatientRequest) (*PatientID, error)
+	GetPatient(context.Context, *GetPatientRequest) (*GetPatientResponse, error)
+	GetPatientsIDs(context.Context, *GetPatientsIDsRequest) (*GetPatientsIDsResponse, error)
+	CreatePatient(context.Context, *CreatePatientRequest) (*CreatePatientResponse, error)
 	mustEmbedUnimplementedPatientsServiceServer()
 }
 
@@ -76,13 +76,13 @@ type PatientsServiceServer interface {
 type UnimplementedPatientsServiceServer struct {
 }
 
-func (UnimplementedPatientsServiceServer) GetPatient(context.Context, *PatientRequest) (*Patient, error) {
+func (UnimplementedPatientsServiceServer) GetPatient(context.Context, *GetPatientRequest) (*GetPatientResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetPatient not implemented")
 }
-func (UnimplementedPatientsServiceServer) GetPatientsIDs(context.Context, *PatientsRequest) (*PaginatedResponse, error) {
+func (UnimplementedPatientsServiceServer) GetPatientsIDs(context.Context, *GetPatientsIDsRequest) (*GetPatientsIDsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetPatientsIDs not implemented")
 }
-func (UnimplementedPatientsServiceServer) CreatePatient(context.Context, *CreatePatientRequest) (*PatientID, error) {
+func (UnimplementedPatientsServiceServer) CreatePatient(context.Context, *CreatePatientRequest) (*CreatePatientResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreatePatient not implemented")
 }
 func (UnimplementedPatientsServiceServer) mustEmbedUnimplementedPatientsServiceServer() {}
@@ -99,7 +99,7 @@ func RegisterPatientsServiceServer(s grpc.ServiceRegistrar, srv PatientsServiceS
 }
 
 func _PatientsService_GetPatient_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(PatientRequest)
+	in := new(GetPatientRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -111,13 +111,13 @@ func _PatientsService_GetPatient_Handler(srv interface{}, ctx context.Context, d
 		FullMethod: "/patients.PatientsService/GetPatient",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PatientsServiceServer).GetPatient(ctx, req.(*PatientRequest))
+		return srv.(PatientsServiceServer).GetPatient(ctx, req.(*GetPatientRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _PatientsService_GetPatientsIDs_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(PatientsRequest)
+	in := new(GetPatientsIDsRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -129,7 +129,7 @@ func _PatientsService_GetPatientsIDs_Handler(srv interface{}, ctx context.Contex
 		FullMethod: "/patients.PatientsService/GetPatientsIDs",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PatientsServiceServer).GetPatientsIDs(ctx, req.(*PatientsRequest))
+		return srv.(PatientsServiceServer).GetPatientsIDs(ctx, req.(*GetPatientsIDsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
