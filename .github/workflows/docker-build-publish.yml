@@ -25,8 +25,8 @@ jobs:
 
       - name: Build Docker image
         run: |
-          docker build -t ghcr.io/tekclinic/patients-ms:${{ github.sha }} --build-arg GITHUB_ACTOR=${{ github.actor }} \
-            --build-arg GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }} .
+          docker build -t ghcr.io/tekclinic/patients-ms:${{ github.sha }} --build-arg GITHUB_ACTOR=${{ secrets.ACTOR }} \
+            --build-arg GITHUB_TOKEN=${{ secrets.TOKEN }} .
           docker tag ghcr.io/tekclinic/patients-ms:${{ github.sha }} ghcr.io/tekclinic/patients-ms:latest
 
       - name: Push Docker image
