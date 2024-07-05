@@ -25,6 +25,7 @@ type PatientsServiceClient interface {
 	GetPatient(ctx context.Context, in *GetPatientRequest, opts ...grpc.CallOption) (*GetPatientResponse, error)
 	GetPatientsIDs(ctx context.Context, in *GetPatientsIDsRequest, opts ...grpc.CallOption) (*GetPatientsIDsResponse, error)
 	CreatePatient(ctx context.Context, in *CreatePatientRequest, opts ...grpc.CallOption) (*CreatePatientResponse, error)
+	DeletePatient(ctx context.Context, in *DeletePatientRequest, opts ...grpc.CallOption) (*DeletePatientResponse, error)
 }
 
 type patientsServiceClient struct {
@@ -62,6 +63,15 @@ func (c *patientsServiceClient) CreatePatient(ctx context.Context, in *CreatePat
 	return out, nil
 }
 
+func (c *patientsServiceClient) DeletePatient(ctx context.Context, in *DeletePatientRequest, opts ...grpc.CallOption) (*DeletePatientResponse, error) {
+	out := new(DeletePatientResponse)
+	err := c.cc.Invoke(ctx, "/patients.PatientsService/DeletePatient", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // PatientsServiceServer is the server API for PatientsService service.
 // All implementations must embed UnimplementedPatientsServiceServer
 // for forward compatibility
@@ -69,6 +79,7 @@ type PatientsServiceServer interface {
 	GetPatient(context.Context, *GetPatientRequest) (*GetPatientResponse, error)
 	GetPatientsIDs(context.Context, *GetPatientsIDsRequest) (*GetPatientsIDsResponse, error)
 	CreatePatient(context.Context, *CreatePatientRequest) (*CreatePatientResponse, error)
+	DeletePatient(context.Context, *DeletePatientRequest) (*DeletePatientResponse, error)
 	mustEmbedUnimplementedPatientsServiceServer()
 }
 
@@ -84,6 +95,9 @@ func (UnimplementedPatientsServiceServer) GetPatientsIDs(context.Context, *GetPa
 }
 func (UnimplementedPatientsServiceServer) CreatePatient(context.Context, *CreatePatientRequest) (*CreatePatientResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreatePatient not implemented")
+}
+func (UnimplementedPatientsServiceServer) DeletePatient(context.Context, *DeletePatientRequest) (*DeletePatientResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeletePatient not implemented")
 }
 func (UnimplementedPatientsServiceServer) mustEmbedUnimplementedPatientsServiceServer() {}
 
@@ -152,6 +166,24 @@ func _PatientsService_CreatePatient_Handler(srv interface{}, ctx context.Context
 	return interceptor(ctx, in, info, handler)
 }
 
+func _PatientsService_DeletePatient_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeletePatientRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PatientsServiceServer).DeletePatient(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/patients.PatientsService/DeletePatient",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PatientsServiceServer).DeletePatient(ctx, req.(*DeletePatientRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // PatientsService_ServiceDesc is the grpc.ServiceDesc for PatientsService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -170,6 +202,10 @@ var PatientsService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "CreatePatient",
 			Handler:    _PatientsService_CreatePatient_Handler,
+		},
+		{
+			MethodName: "DeletePatient",
+			Handler:    _PatientsService_DeletePatient_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

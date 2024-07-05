@@ -68,9 +68,9 @@ func (server patientsServer) GetPatient(ctx context.Context, req *ppb.GetPatient
 		Scan(ctx)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, status.Error(codes.NotFound, "User is not found")
+			return nil, status.Error(codes.NotFound, "patient is not found")
 		}
-		return nil, status.Error(codes.Internal, fmt.Errorf("failed to fetch a user by id: %w", err).Error())
+		return nil, status.Error(codes.Internal, fmt.Errorf("failed to fetch a patients by id: %w", err).Error())
 	}
 	return &ppb.GetPatientResponse{Patient: patient.toGRPC()}, nil
 }
@@ -107,11 +107,11 @@ func (server patientsServer) GetPatientsIDs(ctx context.Context,
 		Limit(int(req.GetLimit())).
 		Scan(ctx, &ids)
 	if err != nil {
-		return nil, status.Error(codes.Internal, fmt.Errorf("failed to fetch users: %w", err).Error())
+		return nil, status.Error(codes.Internal, fmt.Errorf("failed to fetch patients: %w", err).Error())
 	}
 	count, err := baseQuery.Count(ctx)
 	if err != nil {
-		return nil, status.Error(codes.Internal, fmt.Errorf("failed to count users: %w", err).Error())
+		return nil, status.Error(codes.Internal, fmt.Errorf("failed to count patients: %w", err).Error())
 	}
 
 	return &ppb.GetPatientsIDsResponse{
@@ -184,6 +184,32 @@ func (server patientsServer) CreatePatient(ctx context.Context,
 		return nil, status.Error(codes.Internal, fmt.Errorf("failed to create a patient: %w", err).Error())
 	}
 	return &ppb.CreatePatientResponse{Id: patient.ID}, nil
+}
+
+// DeletePatient deletes a patient with the given id.
+// Requires authentication. If authentication is not valid, codes.Unauthenticated is returned.
+// Requires an admin role. If roles are not sufficient, codes.PermissionDenied is returned.
+// If a patient with a given id doesn't exist, codes.NotFound is returned.
+func (server patientsServer) DeletePatient(ctx context.Context, req *ppb.DeletePatientRequest) (
+	*ppb.DeletePatientResponse, error) {
+	claims, err := server.VerifyToken(ctx, req.GetToken())
+	if err != nil {
+		return nil, status.Error(codes.Unauthenticated, err.Error())
+	}
+	if !claims.HasRole("admin") {
+		return nil, status.Error(codes.PermissionDenied, permissionDeniedMessage)
+	}
+
+	res, err := server.db.NewDelete().Model((*Patient)(nil)).Where("id = ?", req.GetId()).Exec(ctx)
+	if err != nil {
+		return nil, status.Error(codes.Internal, fmt.Errorf("failed to delete a patient: %w", err).Error())
+	}
+	// if db supports affected rows count and no rows were affected, return not found
+	rows, err := res.RowsAffected()
+	if err == nil && rows == 0 {
+		return nil, status.Error(codes.NotFound, "patient is not found")
+	}
+	return &ppb.DeletePatientResponse{}, nil
 }
 
 // createPatientsServer initializes a patientsServer with all the necessary fields.

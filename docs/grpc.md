@@ -97,6 +97,33 @@ message CreatePatientResponse {
 
 ---
 
+### DeletePatient
+
+Deletes a patient record by their ID.
+
+**Request:**
+
+```protobuf
+message DeletePatientRequest {
+  string token = 1; // Authentication token
+  int32 id = 2; // ID of the patient to be deleted
+}
+```
+
+**Response:**
+
+```protobuf
+message DeletePatientResponse {}
+```
+
+**Errors:**
+
+- `Unauthenticated` - Token is not valid or expired.
+- `PermissionDenied` - Token is not authorized with the *admin* role.
+- `NotFound` - Patient with the given ID does not exist.
+
+---
+
 ## Model Definition
 
 ```protobuf
