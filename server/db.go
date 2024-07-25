@@ -90,5 +90,33 @@ func createSchemaIfNotExists(ctx context.Context, db *bun.DB) error {
 			return err
 		}
 	}
+
+	// Postgres specific code. Add a text_searchable column for full-text search.
+	_, err := db.NewRaw(
+		"ALTER TABLE patients " +
+			"ADD COLUMN IF NOT EXISTS text_searchable tsvector " +
+			"GENERATED ALWAYS AS " +
+			"(" +
+			"setweight(to_tsvector('simple', coalesce(personal_id_id, '')), 'A') || " +
+			"setweight(to_tsvector('simple', coalesce(phone_number, '')), 'A')   || " +
+			"setweight(to_tsvector('simple', coalesce(name, '')), 'B')           || " +
+			"setweight(to_tsvector('simple', coalesce(special_note, '')), 'C')   || " +
+			"setweight(to_tsvector('simple', coalesce(referred_by, '')), 'D')" +
+			") STORED").Exec(ctx)
+	if err != nil {
+		return err
+	}
+
+	/*
+		SELECT id
+		FROM patients,replace(
+		    websearch_to_tsquery('simple', 'Jo 74')::text || ' ',
+		    ''' ',
+		    ''':*'
+		  ) query
+		WHERE text_searchable @@ query::tsquery
+		ORDER BY ts_rank(text_searchable, query::tsquery) DESC;
+	*/
+
 	return nil
 }

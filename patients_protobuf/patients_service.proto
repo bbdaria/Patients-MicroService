@@ -24,6 +24,7 @@ message GetPatientsIDsRequest {
   string token = 1;
   int32 limit = 2;
   int32 offset = 3;
+  string search = 4;
 }
 
 message GetPatientsIDsResponse {
