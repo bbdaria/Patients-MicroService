@@ -5,9 +5,10 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"log"
 	"net"
 	"time"
+
+	"go.uber.org/zap"
 
 	"github.com/go-playground/validator/v10"
 	sf "github.com/sa-/slicefunk"
@@ -17,7 +18,6 @@ import (
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bun/dialect/pgdialect"
 	"github.com/uptrace/bun/driver/pgdriver"
-	"github.com/uptrace/bun/extra/bundebug"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -33,11 +33,10 @@ type patientsServer struct {
 }
 
 const (
-	envDBAddress     = "DB_ADDR"
-	envDBUser        = "DB_USER"
-	envDBDatabase    = "DB_DATABASE"
-	envDBPassword    = "DB_PASSWORD"
-	envBunDebugLevel = "BUN_DEBUG"
+	envDBAddress  = "DB_ADDR"
+	envDBUser     = "DB_USER"
+	envDBDatabase = "DB_DATABASE"
+	envDBPassword = "DB_PASSWORD"
 
 	applicationName = "patients"
 
@@ -250,13 +249,10 @@ func createPatientsServer() (*patientsServer, error) {
 		pgdriver.WithPassword(password),
 		pgdriver.WithDatabase(database),
 		pgdriver.WithApplicationName(applicationName),
-		pgdriver.WithInsecure(true),
+		pgdriver.WithInsecure(!ms.HasSecureConnection()),
 	)
 	db := bun.NewDB(sql.OpenDB(connector), pgdialect.New())
-	db.AddQueryHook(bundebug.NewQueryHook(
-		bundebug.WithVerbose(true),
-		bundebug.FromEnv(envBunDebugLevel),
-	))
+	db.AddQueryHook(ms.GetDBQueryHook())
 	return &patientsServer{
 		BaseServiceServer: base,
 		db:                db,
@@ -266,24 +262,24 @@ func createPatientsServer() (*patientsServer, error) {
 func main() {
 	service, err := createPatientsServer()
 	if err != nil {
-		log.Fatal(err)
+		zap.L().Fatal("Failed to create a patient server", zap.Error(err))
 	}
 
 	err = createSchemaIfNotExists(context.Background(), service.db)
 	if err != nil {
-		log.Fatal(err)
+		zap.L().Fatal("Failed to create a schema", zap.Error(err))
 	}
 
 	listen, err := net.Listen("tcp", ":"+service.GetPort())
 	if err != nil {
-		log.Fatalf("Failed to listen: %v", err)
+		zap.L().Fatal("Failed to listen", zap.Error(err))
 	}
 
-	srv := grpc.NewServer()
+	srv := grpc.NewServer(ms.GetGRPCServerOptions()...)
 	ppb.RegisterPatientsServiceServer(srv, service)
 
-	log.Println("Server listening on :" + service.GetPort())
+	zap.L().Info("Server listening on :" + service.GetPort())
 	if err = srv.Serve(listen); err != nil {
-		log.Fatalf("Failed to serve: %v", err)
+		zap.L().Fatal("Failed to serve", zap.Error(err))
 	}
 }
