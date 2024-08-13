@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	ppb "github.com/TekClinic/Patients-MicroService/patients_protobuf"
@@ -49,12 +50,29 @@ func (personalId PersonalID) toGRPC() *ppb.Patient_PersonalID {
 	}
 }
 
+// personalIDFromGRPC returns a PersonalID from a GRPC version.
+func personalIDFromGRPC(personalID *ppb.Patient_PersonalID) PersonalID {
+	return PersonalID{
+		ID:   personalID.GetId(),
+		Type: personalID.GetType(),
+	}
+}
+
 // toGRPC returns a GRPC version of EmergencyContact.
 func (contact EmergencyContact) toGRPC() *ppb.Patient_EmergencyContact {
 	return &ppb.Patient_EmergencyContact{
 		Name:      contact.Name,
 		Closeness: contact.Closeness,
 		Phone:     contact.Phone,
+	}
+}
+
+// emergencyContactFromGRPC returns an EmergencyContact from a GRPC version.
+func emergencyContactFromGRPC(contact *ppb.Patient_EmergencyContact) *EmergencyContact {
+	return &EmergencyContact{
+		Name:      contact.GetName(),
+		Closeness: contact.GetCloseness(),
+		Phone:     contact.GetPhone(),
 	}
 }
 
@@ -76,6 +94,28 @@ func (patient Patient) toGRPC() *ppb.Patient {
 		EmergencyContacts: emergencyContacts,
 		SpecialNote:       patient.SpecialNote,
 	}
+}
+
+// patientFromGRPC returns a Patient from a GRPC version.
+func patientFromGRPC(patient *ppb.Patient) (Patient, error) {
+	emergencyContacts := sf.Map(patient.GetEmergencyContacts(), emergencyContactFromGRPC)
+	birthDate, err := time.Parse(birthDateFormat, patient.GetBirthDate())
+	if err != nil {
+		return Patient{}, fmt.Errorf("failed to parse birth date: %w", err)
+	}
+	return Patient{
+		ID:                patient.GetId(),
+		Active:            patient.GetActive(),
+		Name:              patient.GetName(),
+		PersonalID:        personalIDFromGRPC(patient.GetPersonalId()),
+		Gender:            patient.GetGender(),
+		PhoneNumber:       patient.GetPhoneNumber(),
+		Languages:         patient.GetLanguages(),
+		BirthDate:         birthDate,
+		ReferredBy:        patient.GetReferredBy(),
+		EmergencyContacts: emergencyContacts,
+		SpecialNote:       patient.GetSpecialNote(),
+	}, nil
 }
 
 // createSchemaIfNotExists creates all required schemas for patient microservice.

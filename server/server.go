@@ -173,7 +173,7 @@ func (server patientsServer) CreatePatient(ctx context.Context,
 	if err = server.validate.Struct(patient); err != nil {
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
-	err = server.db.RunInTx(ctx, &sql.TxOptions{}, func(ctx context.Context, tx bun.Tx) error {
+	if err = server.db.RunInTx(ctx, &sql.TxOptions{}, func(ctx context.Context, tx bun.Tx) error {
 		// firstly, insert the patient itself
 		if _, txErr := tx.NewInsert().Model(&patient).Exec(ctx); txErr != nil {
 			return txErr
@@ -187,8 +187,7 @@ func (server patientsServer) CreatePatient(ctx context.Context,
 			}
 		}
 		return nil
-	})
-	if err != nil {
+	}); err != nil {
 		return nil, status.Error(codes.Internal, fmt.Errorf("failed to create a patient: %w", err).Error())
 	}
 	return &ppb.CreatePatientResponse{Id: patient.ID}, nil
@@ -218,6 +217,67 @@ func (server patientsServer) DeletePatient(ctx context.Context, req *ppb.DeleteP
 		return nil, status.Error(codes.NotFound, "patient is not found")
 	}
 	return &ppb.DeletePatientResponse{}, nil
+}
+
+// UpdatePatient updates a patient with the given id and data.
+// Requires authentication. If authentication is not valid, codes.Unauthenticated is returned.
+// Requires an admin role. If roles are not sufficient, codes.PermissionDenied is returned.
+// If some argument is missing or not valid, codes.InvalidArgument is returned.
+// If a patient with a given id doesn't exist, codes.NotFound is returned.
+func (server patientsServer) UpdatePatient(ctx context.Context, req *ppb.UpdatePatientRequest) (
+	*ppb.UpdatePatientResponse, error) {
+	claims, err := server.VerifyToken(ctx, req.GetToken())
+	if err != nil {
+		return nil, status.Error(codes.Unauthenticated, err.Error())
+	}
+	if !claims.HasRole("admin") {
+		return nil, status.Error(codes.PermissionDenied, permissionDeniedMessage)
+	}
+
+	patient, err := patientFromGRPC(req.GetPatient())
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, err.Error())
+	}
+	if err = server.validate.Struct(patient); err != nil {
+		return nil, status.Error(codes.InvalidArgument, err.Error())
+	}
+
+	if patient.ID == 0 {
+		return nil, status.Error(codes.InvalidArgument, "Patient ID is required")
+	}
+
+	if err = server.db.RunInTx(ctx, &sql.TxOptions{}, func(ctx context.Context, tx bun.Tx) error {
+		// firstly, update the patient itself
+		res, txErr := tx.NewUpdate().Model(&patient).WherePK().Exec(ctx)
+		if txErr != nil {
+			return status.Error(codes.Internal, fmt.Errorf("failed to update a patient: %w", txErr).Error())
+		}
+
+		// if db supports affected rows count and no rows were affected, return not found
+		rows, rowsErr := res.RowsAffected()
+		if rowsErr == nil && rows == 0 {
+			return status.Error(codes.NotFound, "patient is not found")
+		}
+
+		// afterward, delete all its emergence contacts
+		_, txErr = tx.NewDelete().Model((*EmergencyContact)(nil)).Where("patient_id = ?", patient.ID).Exec(ctx)
+		if txErr != nil {
+			return status.Error(codes.Internal, fmt.Errorf("failed to delete emergency contacts: %w", txErr).Error())
+		}
+
+		// finally, insert all its emergence contacts
+		for _, contact := range patient.EmergencyContacts {
+			contact.PatientID = patient.ID
+
+			if _, txErr = tx.NewInsert().Model(contact).Exec(ctx); txErr != nil {
+				return txErr
+			}
+		}
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+	return &ppb.UpdatePatientResponse{Id: patient.ID}, nil
 }
 
 // createPatientsServer initializes a patientsServer with all the necessary fields.

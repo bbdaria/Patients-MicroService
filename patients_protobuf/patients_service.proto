@@ -9,6 +9,7 @@ service PatientsService {
   rpc GetPatientsIDs(GetPatientsIDsRequest) returns (GetPatientsIDsResponse);
   rpc CreatePatient(CreatePatientRequest) returns (CreatePatientResponse);
   rpc DeletePatient(DeletePatientRequest) returns (DeletePatientResponse);
+  rpc UpdatePatient(UpdatePatientRequest) returns (UpdatePatientResponse);
 }
 
 message GetPatientRequest {
@@ -55,6 +56,15 @@ message DeletePatientRequest {
 }
 
 message DeletePatientResponse {}
+
+message UpdatePatientRequest {
+  string token = 1;
+  Patient patient = 2;
+}
+
+message UpdatePatientResponse {
+  int32 id = 1;
+}
 
 message Patient {
   message PersonalID {
