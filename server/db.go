@@ -40,6 +40,8 @@ type Patient struct {
 	ReferredBy        string              `validate:"max=100"`
 	EmergencyContacts []*EmergencyContact `bun:"rel:has-many,join:id=patient_id" validate:"max=10,dive"`
 	SpecialNote       string              `validate:"max=500"`
+	CreatedAt         time.Time           `bun:",nullzero,notnull,default:current_timestamp"`
+	DeletedAt         time.Time           `bun:",soft_delete,nullzero"`
 }
 
 // toGRPC returns a GRPC version of PersonalID.
@@ -131,8 +133,16 @@ func createSchemaIfNotExists(ctx context.Context, db *bun.DB) error {
 		}
 	}
 
+	// Migration code. Add created_at and deleted_at columns to the patient table for soft delete.
+	if _, err := db.NewRaw(
+		"ALTER TABLE patients " +
+			"ADD COLUMN IF NOT EXISTS created_at timestamptz NOT NULL DEFAULT now(), " +
+			"ADD COLUMN IF NOT EXISTS deleted_at timestamptz;").Exec(ctx); err != nil {
+		return err
+	}
+
 	// Postgres specific code. Add a text_searchable column for full-text search.
-	_, err := db.NewRaw(
+	if _, err := db.NewRaw(
 		"ALTER TABLE patients " +
 			"ADD COLUMN IF NOT EXISTS text_searchable tsvector " +
 			"GENERATED ALWAYS AS " +
@@ -142,21 +152,9 @@ func createSchemaIfNotExists(ctx context.Context, db *bun.DB) error {
 			"setweight(to_tsvector('simple', coalesce(name, '')), 'B')           || " +
 			"setweight(to_tsvector('simple', coalesce(special_note, '')), 'C')   || " +
 			"setweight(to_tsvector('simple', coalesce(referred_by, '')), 'D')" +
-			") STORED").Exec(ctx)
-	if err != nil {
+			") STORED").Exec(ctx); err != nil {
 		return err
 	}
-
-	/*
-		SELECT id
-		FROM patients,replace(
-		    websearch_to_tsquery('simple', 'Jo 74')::text || ' ',
-		    ''' ',
-		    ''':*'
-		  ) query
-		WHERE text_searchable @@ query::tsquery
-		ORDER BY ts_rank(text_searchable, query::tsquery) DESC;
-	*/
 
 	return nil
 }

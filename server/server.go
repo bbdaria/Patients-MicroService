@@ -64,6 +64,7 @@ func (server patientsServer) GetPatient(ctx context.Context, req *ppb.GetPatient
 		Model(patient).
 		Relation("EmergencyContacts").
 		Where("? = ?", bun.Ident("id"), req.GetId()).
+		WhereAllWithDeleted().
 		Scan(ctx)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -248,7 +249,11 @@ func (server patientsServer) UpdatePatient(ctx context.Context, req *ppb.UpdateP
 
 	if err = server.db.RunInTx(ctx, &sql.TxOptions{}, func(ctx context.Context, tx bun.Tx) error {
 		// firstly, update the patient itself
-		res, txErr := tx.NewUpdate().Model(&patient).WherePK().Exec(ctx)
+		res, txErr := tx.NewUpdate().
+			Model(&patient).
+			ExcludeColumn("created_at", "deleted_at").
+			WherePK().
+			Exec(ctx)
 		if txErr != nil {
 			return status.Error(codes.Internal, fmt.Errorf("failed to update a patient: %w", txErr).Error())
 		}
