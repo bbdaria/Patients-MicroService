@@ -40,6 +40,7 @@ message GetPatientsIDsRequest {
   string token = 1; // Authentication token
   int32 limit = 2; // Maximum number of results to return
   int32 offset = 3; // Offset for pagination
+  string search = 4; // Search term for filtering results (optional)
 }
 ```
 
@@ -56,7 +57,7 @@ message GetPatientsIDsResponse {
 
 - `Unauthenticated` - Token is not valid or expired.
 - `PermissionDenied` - Token is not authorized with the *admin* role.
-- `InvalidArgument` - `offset` or `limit` parameters are invalid.
+- `InvalidArgument` - `offset`, `limit`, or `search` parameters are invalid.
 
 ---
 
@@ -124,6 +125,36 @@ message DeletePatientResponse {}
 
 ---
 
+### UpdatePatient
+
+Updates the details of an existing patient.
+
+**Request:**
+
+```protobuf
+message UpdatePatientRequest {
+  string token = 1; // Authentication token
+  Patient patient = 2; // Updated patient details
+}
+```
+
+**Response:**
+
+```protobuf
+message UpdatePatientResponse {
+  int32 id = 1; // ID of the updated patient
+}
+```
+
+**Errors:**
+
+- `Unauthenticated` - Token is not valid or expired.
+- `PermissionDenied` - Token is not authorized with the *admin* role.
+- `InvalidArgument` - Updated patient information is missing or malformed.
+- `NotFound` - Patient with the given ID does not exist.
+
+---
+
 ## Model Definition
 
 ```protobuf
@@ -131,21 +162,25 @@ message Patient {
   int32 id = 1; // ID of the patient
   bool active = 2; // Flag indicating if the patient is active
   string name = 3; // Name of the patient
+
   // Details of the patient
   message PersonalID {
     string id = 1; // Personal ID of the patient
     string type = 2; // Type of personal ID
   }
+
   enum Gender {
     UNSPECIFIED = 0;
     MALE = 1;
     FEMALE = 2;
   }
+
   message EmergencyContact {
     string name = 1; // Name of the emergency contact
     string closeness = 2; // Relationship closeness
     string phone = 3; // Phone number of the emergency contact
   }
+
   PersonalID personal_id = 4; // Personal ID of the patient
   Gender gender = 5; // Gender of the patient
   string phone_number = 6; // Phone number of the patient
