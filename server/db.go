@@ -42,6 +42,7 @@ type Patient struct {
 	SpecialNote       string              `validate:"max=500"`
 	CreatedAt         time.Time           `bun:",nullzero,notnull,default:current_timestamp"`
 	DeletedAt         time.Time           `bun:",soft_delete,nullzero"`
+	NeedsTranslator   bool                ``
 }
 
 // toGRPC returns a GRPC version of PersonalID.
@@ -95,6 +96,7 @@ func (patient Patient) toGRPC() *ppb.Patient {
 		ReferredBy:        patient.ReferredBy,
 		EmergencyContacts: emergencyContacts,
 		SpecialNote:       patient.SpecialNote,
+		NeedsTranslator:   false,
 	}
 }
 
@@ -117,6 +119,7 @@ func patientFromGRPC(patient *ppb.Patient) (Patient, error) {
 		ReferredBy:        patient.GetReferredBy(),
 		EmergencyContacts: emergencyContacts,
 		SpecialNote:       patient.GetSpecialNote(),
+		NeedsTranslator:   patient.GetNeedsTranslator(),
 	}, nil
 }
 
@@ -137,7 +140,9 @@ func createSchemaIfNotExists(ctx context.Context, db *bun.DB) error {
 	if _, err := db.NewRaw(
 		"ALTER TABLE patients " +
 			"ADD COLUMN IF NOT EXISTS created_at timestamptz NOT NULL DEFAULT now(), " +
-			"ADD COLUMN IF NOT EXISTS deleted_at timestamptz;").Exec(ctx); err != nil {
+			"ADD COLUMN IF NOT EXISTS deleted_at timestamptz, " +
+			"ADD COLUMN IF NOT EXISTS needs_translator BOOLEAN, " + // <-- Add the comma
+			"ALTER COLUMN needs_translator SET DEFAULT false;").Exec(ctx); err != nil {
 		return err
 	}
 

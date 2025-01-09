@@ -12,6 +12,7 @@ service PatientsService {
   rpc UpdatePatient(UpdatePatientRequest) returns (UpdatePatientResponse);
 }
 
+
 message GetPatientRequest {
   string token = 1;
   int32 id = 2;
@@ -44,6 +45,7 @@ message CreatePatientRequest {
   repeated Patient.EmergencyContact emergency_contacts = 8;
   string referred_by = 9;
   string special_note = 10;
+  bool needs_translator= 11;
 }
 
 message CreatePatientResponse {
@@ -96,4 +98,5 @@ message Patient {
   string referred_by = 10;
   repeated EmergencyContact emergency_contacts = 11;
   string special_note = 12;
+  bool needs_translator = 13;
 }

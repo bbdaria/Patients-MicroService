@@ -169,7 +169,8 @@ func (server patientsServer) CreatePatient(ctx context.Context,
 					Phone:     contact.GetPhone(),
 				}
 			}),
-		SpecialNote: req.GetSpecialNote(),
+		SpecialNote:     req.GetSpecialNote(),
+		NeedsTranslator: req.GetNeedsTranslator(),
 	}
 	if err = server.validate.Struct(patient); err != nil {
 		return nil, status.Error(codes.InvalidArgument, err.Error())
