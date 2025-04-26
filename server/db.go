@@ -36,13 +36,13 @@ type Patient struct {
 	Gender            ppb.Patient_Gender  ``
 	PhoneNumber       string              `validate:"omitempty,e164"`
 	Languages         []string            `bun:",array" validate:"max=10,dive,max=100"`
+	NeedsTranslator   string              ``
 	BirthDate         time.Time           `validate:"required"`
 	ReferredBy        string              `validate:"max=100"`
 	EmergencyContacts []*EmergencyContact `bun:"rel:has-many,join:id=patient_id" validate:"max=10,dive"`
 	SpecialNote       string              `validate:"max=500"`
 	CreatedAt         time.Time           `bun:",nullzero,notnull,default:current_timestamp"`
 	DeletedAt         time.Time           `bun:",soft_delete,nullzero"`
-	NeedsTranslator   bool                ``
 }
 
 // toGRPC returns a GRPC version of PersonalID.
@@ -96,7 +96,7 @@ func (patient Patient) toGRPC() *ppb.Patient {
 		ReferredBy:        patient.ReferredBy,
 		EmergencyContacts: emergencyContacts,
 		SpecialNote:       patient.SpecialNote,
-		NeedsTranslator:   false,
+		NeedsTranslator:   patient.needs_translator,
 	}
 }
 

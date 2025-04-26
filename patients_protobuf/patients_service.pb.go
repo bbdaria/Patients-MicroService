@@ -407,11 +407,11 @@ func (x *CreatePatientRequest) GetSpecialNote() string {
 	return ""
 }
 
-func (x *CreatePatientRequest) GetNeedsTranslator() bool {
+func (x *CreatePatientRequest) GetNeedsTranslator() string {
 	if x != nil {
 		return x.NeedsTranslator
 	}
-	return false
+	return ""
 }
 
 type CreatePatientResponse struct {
@@ -780,11 +780,11 @@ func (x *Patient) GetSpecialNote() string {
 	return ""
 }
 
-func (x *Patient) GetNeedsTranslator() bool {
+func (x *Patient) GetNeedsTranslator() string {
 	if x != nil {
 		return x.NeedsTranslator
 	}
-	return false
+	return ""
 }
 
 type Patient_PersonalID struct {
